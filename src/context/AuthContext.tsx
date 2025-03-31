@@ -1,17 +1,28 @@
-import { ReactNode, createContext, useEffect, useState, useContext } from "react"
+import { createContext, useEffect, useState, useContext } from "react"
 import { User, onAuthStateChanged } from "firebase/auth"
+import { signOut } from 'firebase/auth'
 import { auth } from "../Firebase"
 
 type AuthContextType = {
   user: User | null
   loading: boolean
+  logout: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true })
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export const useAuth = () => useContext(AuthContext)
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider")
+  }
+  return context
+}
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+
+
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -20,9 +31,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(currentUser)
       setLoading(false)
     })
+
     return () => unsubscribe()
   }, [])
 
-  return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>
+  const logout = async () => {
+    try {
+      await signOut(auth)
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error)
+    }
+  }
+  return (
+    <AuthContext.Provider value={{ user, loading, logout }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
  export default AuthContext

@@ -22,7 +22,7 @@ function App() {
             </AdminLayout>
           </PrivateRoute>
         }
-      />
+        />
       <Route
         path="/dashboard"
         element={
@@ -32,7 +32,7 @@ function App() {
             </AdminLayout>
           </PrivateRoute>
         }
-      />
+        />
       <Route
         path="/users"
         element={
@@ -42,7 +42,7 @@ function App() {
             </AdminLayout>
           </PrivateRoute>
         }
-      />
+        />
       <Route
         path="/settings"
         element={
@@ -52,13 +52,12 @@ function App() {
             </AdminLayout>
           </PrivateRoute>
         }
-      />
+        />
       <Route path="/signup" 
       element={
-      <SignUp />
+        <SignUp />
       } />
     </Routes>
-
   )
 }
 
