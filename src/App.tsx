@@ -4,44 +4,61 @@ import Dashboard from "./pages/Dashboard"
 import Users from "./pages/Users"
 import Settings from "./pages/Settings"
 import AdminLayout from "./layouts/AdminLayout"
+import PrivateRoute from "./components/PrivateRoute"
+import SignUp from "./pages/SignUp"
+
 
 function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+
       <Route
         path="/"
         element={
-          <AdminLayout>
-            <Dashboard />
-          </AdminLayout>
+          <PrivateRoute>
+            <AdminLayout>
+              <Dashboard />
+            </AdminLayout>
+          </PrivateRoute>
         }
       />
       <Route
         path="/dashboard"
         element={
-          <AdminLayout>
-            <Dashboard />
-          </AdminLayout>
+          <PrivateRoute>
+            <AdminLayout>
+              <Dashboard />
+            </AdminLayout>
+          </PrivateRoute>
         }
       />
       <Route
         path="/users"
         element={
-          <AdminLayout>
-            <Users />
-          </AdminLayout>
+          <PrivateRoute>
+            <AdminLayout>
+              <Users />
+            </AdminLayout>
+          </PrivateRoute>
         }
       />
       <Route
         path="/settings"
         element={
-          <AdminLayout>
-            <Settings />
-          </AdminLayout>
+          <PrivateRoute>
+            <AdminLayout>
+              <Settings />
+            </AdminLayout>
+          </PrivateRoute>
         }
       />
+      <Route path="/signup" 
+      element={
+      <SignUp />
+      } />
     </Routes>
+
   )
 }
 
