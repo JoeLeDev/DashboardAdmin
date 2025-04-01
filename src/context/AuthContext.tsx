@@ -1,11 +1,12 @@
 import { createContext, useEffect, useState, useContext } from "react"
-import { User, onAuthStateChanged } from "firebase/auth"
-import { signOut } from 'firebase/auth'
-import { auth } from "../Firebase"
+import { User, onAuthStateChanged, signOut } from "firebase/auth"
+import { doc, getDoc } from "firebase/firestore"
+import { auth, db } from "../Firebase"
 
 type AuthContextType = {
   user: User | null
   loading: boolean
+  role: string | null
   logout: () => Promise<void>
 }
 
@@ -19,17 +20,29 @@ export const useAuth = () => {
   return context
 }
 
-
-
-
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [role, setRole] = useState<string | null>(null)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser)
       setLoading(false)
+
+      if (currentUser) {
+        const docRef = doc(db, "Users", currentUser.uid)
+        const docSnap = await getDoc(docRef)
+
+        if (docSnap.exists()) {
+          const data = docSnap.data()
+          setRole(data.role || null)
+        } else {
+          setRole(null)
+        }
+      } else {
+        setRole(null)
+      }
     })
 
     return () => unsubscribe()
@@ -39,13 +52,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       await signOut(auth)
     } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error)
+      console.error("Erreur lors de la déconnexion :", error)
     }
   }
+
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider value={{ user, loading, role, logout }}>
       {children}
     </AuthContext.Provider>
   )
 }
- export default AuthContext
+
+export default AuthContext
