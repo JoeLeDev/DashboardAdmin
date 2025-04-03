@@ -1,9 +1,16 @@
 import { createContext, useEffect, useState, useContext } from "react"
 import { User, onAuthStateChanged, signOut } from "firebase/auth"
-import { doc, getDoc } from "firebase/firestore"
+import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore"
 import { auth, db } from "../Firebase"
 
-type AuthContextType = {
+// Types pour Firestore
+interface FirestoreUserData {
+  email: string
+  role: string
+  createdAt: Timestamp
+}
+
+interface AuthContextType {
   user: User | null
   loading: boolean
   role: string | null
@@ -14,9 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
+  if (!context) throw new Error("useAuth must be used within an AuthProvider")
   return context
 }
 
@@ -31,14 +36,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false)
 
       if (currentUser) {
-        const docRef = doc(db, "Users", currentUser.uid)
-        const docSnap = await getDoc(docRef)
+        const userRef = doc(db, "Users", currentUser.uid)
+        const docSnap = await getDoc(userRef)
 
-        if (docSnap.exists()) {
-          const data = docSnap.data()
-          setRole(data.role || null)
+        if (!docSnap.exists()) {
+          await setDoc(userRef, {
+            email: currentUser.email,
+            role: "user",
+            createdAt: Timestamp.now()
+          })
+          setRole("user")
         } else {
-          setRole(null)
+          const data = docSnap.data() as FirestoreUserData
+          setRole(data.role || null)
         }
       } else {
         setRole(null)
@@ -51,8 +61,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       await signOut(auth)
-    } catch (error) {
-      console.error("Erreur lors de la déconnexion :", error)
+    } catch (err) {
+      console.error("Erreur lors de la déconnexion:", err)
     }
   }
 
