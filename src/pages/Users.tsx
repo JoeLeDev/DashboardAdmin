@@ -1,24 +1,38 @@
 import { useEffect, useState } from "react"
-import { Timestamp } from "firebase/firestore"
-import { getAllUsers,promoteToAdmin,demoteToUser } from "../services/UsersService"
+import { Timestamp, doc, deleteDoc, updateDoc } from "firebase/firestore"
+import { getAllUsers, promoteToAdmin, demoteToUser } from "../services/UsersService"
 import { useAuth } from "../context/AuthContext"
+import { db } from "../Firebase"
 import { Card, CardContent } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import Loader from "../components/ui/loader"
-import { toast } from "../hooks/use-toast"
+import { toast } from "sonner"
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
+import { Input } from "../components/ui/input"
+import { uploadUserAvatar } from "../services/UsersService"
 
 type AppUser = {
   id: string
+  lastName: string
+  firstName: string
   email: string
   role: string
   createdAt?: Timestamp
+  photoURL?: string
 }
 
 const Users = () => {
   const [users, setUsers] = useState<AppUser[]>([])
   const [usersLoading, setUsersLoading] = useState(true)
-
   const { role: currentUserRole, loading: authLoading } = useAuth()
+
+  // States pour l'édition
+  const [editUserId, setEditUserId] = useState<string | null>(null)
+  const [editFirstName, setEditFirstName] = useState("")
+  const [editLastName, setEditLastName] = useState("")
+  const [editEmail, setEditEmail] = useState("")
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -40,54 +54,68 @@ const Users = () => {
       await promoteToAdmin(uid)
       const updated = await getAllUsers()
       setUsers(updated as AppUser[])
-  
-      toast({
-        title: "✅ Promotion réussie",
-        description: "L'utilisateur est maintenant admin.",
-      })
+      toast.success("Utilisateur promu administrateur.")
     } catch (err) {
-      console.error("Erreur lors de la promotion :", err)
-      toast({
-        title: "❌ Erreur",
-        description: "Impossible de promouvoir l'utilisateur.",
-        variant: "destructive"
-      })
+      toast.error("Erreur lors de la promotion.")
     }
   }
-  
 
   const handleDemote = async (uid: string) => {
     try {
       await demoteToUser(uid)
       const updated = await getAllUsers()
       setUsers(updated as AppUser[])
-  
-      toast({
-        title: "👤 Rétrogradé",
-        description: "L'utilisateur est maintenant simple utilisateur.",
-      })
+      toast.success("Utilisateur rétrogradé.")
     } catch (err) {
-      console.error("Erreur lors de la rétrogradation :", err)
-      toast({
-        title: "❌ Erreur",
-        description: "Impossible de rétrograder l'utilisateur.",
-        variant: "destructive"
-      })
+      toast.error("Erreur lors de la rétrogradation.")
     }
   }
-  
 
-  console.log("authLoading:", authLoading)
-  console.log("currentUserRole:", currentUserRole)
-  
-  if (authLoading || usersLoading) {
-    return <Loader />
-  }
-  
+  const handleDelete = async (uid: string) => {
+    const confirm = window.confirm("Supprimer cet utilisateur ?")
+    if (!confirm) return
 
-  if (currentUserRole !== "admin") {
-    return <p>Accès refusé. Réservé aux administrateurs.</p>
+    try {
+      await deleteDoc(doc(db, "Users", uid))
+      const updated = await getAllUsers()
+      setUsers(updated as AppUser[])
+      toast.success("Utilisateur supprimé.")
+    } catch (err) {
+      toast.error("Erreur lors de la suppression.")
+    }
   }
+
+  const handleUpdateUser = async () => {
+    if (!editUserId) return
+
+    try {
+      let photoURL = ""
+
+      if (selectedFile) {
+        photoURL = await uploadUserAvatar(selectedFile, editUserId)
+      }
+
+      await updateDoc(doc(db, "Users", editUserId), {
+        firstName: editFirstName,
+        lastName: editLastName,
+        email: editEmail,
+        ...(photoURL && { photoURL }) // ne met à jour que si une image a été uploadée
+      })
+
+      toast.success("Utilisateur modifié.")
+      const updated = await getAllUsers()
+      setUsers(updated as AppUser[])
+    } catch (err) {
+      toast.error("Erreur de mise à jour.")
+    } finally {
+      setEditUserId(null)
+      setSelectedFile(null)
+    }
+  }
+
+
+  if (authLoading || usersLoading) return <Loader />
+  if (currentUserRole !== "admin") return <p>Accès refusé</p>
 
   return (
     <div className="p-4 space-y-4">
@@ -96,21 +124,68 @@ const Users = () => {
         {users.map((user) => (
           <Card key={user.id}>
             <CardContent className="p-4 space-y-2">
+              <h3 className="text-lg font-semibold">
+                {user.firstName} {user.lastName}
+              </h3>
               <p><strong>Email :</strong> {user.email}</p>
               <p><strong>Rôle :</strong> {user.role}</p>
+              {user.photoURL && ( <img src={user.photoURL} alt="Avatar" 
+              className="w-16 h-16 rounded-full object-cover mb-2 border shadow"/>)}
               {user.createdAt && (
                 <p><strong>Inscrit le :</strong> {user.createdAt.toDate().toLocaleDateString()}</p>
               )}
 
-              {user.role !== "admin" ? (
-                <Button size="sm" variant="outline" onClick={() => handlePromote(user.id)}>
-                  Promouvoir
+              <div className="flex flex-wrap gap-2">
+                {user.role !== "admin" ? (
+                  <Button size="sm" variant="outline" onClick={() => handlePromote(user.id)}>
+                    Promouvoir
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="secondary" onClick={() => handleDemote(user.id)}>
+                    Rétrograder
+                  </Button>
+                )}
+                <Button size="sm" variant="destructive" onClick={() => handleDelete(user.id)}>
+                  Supprimer
                 </Button>
-              ) : (
-                <Button size="sm" variant="destructive" onClick={() => handleDemote(user.id)}>
-                  Rétrograder
-                </Button>
-              )}
+
+                {/* Modal de modification */}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setEditUserId(user.id)
+                        setEditFirstName(user.firstName)
+                        setEditLastName(user.lastName)
+                        setEditEmail(user.email)
+                      }}
+                    >
+                      ✏️ Modifier
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Modifier l'utilisateur</DialogTitle>
+                      <p className="text-sm text-muted-foreground"> Modifie les informations et la photo de l'utilisateur.</p>
+                    </DialogHeader>
+                    <div className="space-y-2">
+                      <label className="block text-sm">Nom</label>
+                      <Input value={editLastName} onChange={(e) => setEditLastName(e.target.value)} />
+                      <label className="block text-sm">Prénom</label>
+                      <Input value={editFirstName} onChange={(e) => setEditFirstName(e.target.value)} />
+                      <label className="block text-sm">Email</label>
+                      <Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+                      <label className="block text-sm">Photo de profil</label>
+                      <Input type="file" accept="image/*" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleUpdateUser}>💾 Enregistrer</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardContent>
           </Card>
         ))}
