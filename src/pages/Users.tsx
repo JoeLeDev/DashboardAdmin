@@ -154,6 +154,8 @@ const Users = () => {
                   <DialogTrigger asChild>
                     <Button
                       size="sm"
+                      variant="destructive"
+                      className="bg-blue-800 hover:bg-blue-900 text-white"
                       onClick={() => {
                         setEditUserId(user.id)
                         setEditFirstName(user.firstName)
@@ -161,7 +163,7 @@ const Users = () => {
                         setEditEmail(user.email)
                       }}
                     >
-                      ✏️ Modifier
+                       Modifier
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -181,7 +183,7 @@ const Users = () => {
                       />
                     </div>
                     <DialogFooter>
-                      <Button onClick={handleUpdateUser}>💾 Enregistrer</Button>
+                      <Button onClick={handleUpdateUser}> Enregistrer</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
