@@ -4,6 +4,8 @@ import { getAllUsers,promoteToAdmin,demoteToUser } from "../services/UsersServic
 import { useAuth } from "../context/AuthContext"
 import { Card, CardContent } from "../components/ui/card"
 import { Button } from "../components/ui/button"
+import Loader from "../components/ui/loader"
+import { toast } from "../hooks/use-toast"
 
 type AppUser = {
   id: string
@@ -34,23 +36,54 @@ const Users = () => {
   }, [])
 
   const handlePromote = async (uid: string) => {
-    await promoteToAdmin(uid)
-    const updated = await getAllUsers()
-    setUsers(updated as AppUser[])
+    try {
+      await promoteToAdmin(uid)
+      const updated = await getAllUsers()
+      setUsers(updated as AppUser[])
+  
+      toast({
+        title: "✅ Promotion réussie",
+        description: "L'utilisateur est maintenant admin.",
+      })
+    } catch (err) {
+      console.error("Erreur lors de la promotion :", err)
+      toast({
+        title: "❌ Erreur",
+        description: "Impossible de promouvoir l'utilisateur.",
+        variant: "destructive"
+      })
+    }
   }
+  
 
   const handleDemote = async (uid: string) => {
-    await demoteToUser(uid)
-    const updated = await getAllUsers()
-    setUsers(updated as AppUser[])
+    try {
+      await demoteToUser(uid)
+      const updated = await getAllUsers()
+      setUsers(updated as AppUser[])
+  
+      toast({
+        title: "👤 Rétrogradé",
+        description: "L'utilisateur est maintenant simple utilisateur.",
+      })
+    } catch (err) {
+      console.error("Erreur lors de la rétrogradation :", err)
+      toast({
+        title: "❌ Erreur",
+        description: "Impossible de rétrograder l'utilisateur.",
+        variant: "destructive"
+      })
+    }
   }
+  
 
   console.log("authLoading:", authLoading)
   console.log("currentUserRole:", currentUserRole)
   
   if (authLoading || usersLoading) {
-    return <p>Chargement...</p>
+    return <Loader />
   }
+  
 
   if (currentUserRole !== "admin") {
     return <p>Accès refusé. Réservé aux administrateurs.</p>

@@ -32,7 +32,6 @@ const Login = () => {
         onSubmit={handleSubmit}
         className="bg-white dark:bg-gray-800 shadow-xl rounded-xl p-8 space-y-6 w-full max-w-md transition-all"
       >
-        {/* Header + bouton dark mode */}
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Connexion</h1>
           <button
@@ -44,14 +43,13 @@ const Login = () => {
           </button>
         </div>
   
-        {/* Message d'erreur */}
+
         {error && (
           <p className="text-red-500 text-sm bg-red-100 dark:bg-red-900 p-2 rounded">
             {error}
           </p>
         )}
   
-        {/* Champs */}
         <input
           type="email"
           placeholder="Email"
@@ -70,7 +68,7 @@ const Login = () => {
           className="w-full px-4 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
         />
   
-        {/* Bouton */}
+
         <button
           type="submit"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition-colors"
@@ -78,7 +76,7 @@ const Login = () => {
           Se connecter
         </button>
   
-        {/* Lien signup */}
+
         <p className="text-sm text-center text-gray-600 dark:text-gray-400">
           Pas encore de compte ?{" "}
           <a href="/signup" className="text-blue-500 hover:underline">
