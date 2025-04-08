@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext"
 import { db } from "../Firebase"
 import { Card, CardContent } from "../components/ui/card"
 import { Button } from "../components/ui/button"
-import Loader from "../components/ui/loader"
+import Loader from "../components/ui/Loader"
 import { toast } from "sonner"
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog"
 import { Input } from "../components/ui/input"
@@ -33,6 +33,7 @@ const Users = () => {
   const [editEmail, setEditEmail] = useState("")
   const [editPhoto, setSelectedFile] = useState<File | string>("")
   const [previewURL, setPreviewURL] = useState<string | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
 
 
 
@@ -89,35 +90,46 @@ const Users = () => {
 
   const handleUpdateUser = async () => {
     if (!editUserId) return
-
+  
     try {
-      let photoURL = ""
-    
-      if (setSelectedFile) {
+      let photoURL = typeof editPhoto === "string" ? editPhoto : ""
+  
+      if (editPhoto instanceof File) {
         try {
-          photoURL = await uploadUserAvatar(setSelectedFile, editUserId)
+          photoURL = await uploadUserAvatar(editPhoto, editUserId)
         } catch (uploadErr) {
           console.error("Erreur lors de l'upload :", uploadErr)
-          toast.error("🚫 Impossible d'envoyer la photo. Accès refusé.")
-          return 
+          toast.error("🚫 Vous n'avez pas les droits pour modifier cette image.")
+          return
         }
       }
-    
+  
       await updateDoc(doc(db, "Users", editUserId), {
         firstName: editFirstName,
         lastName: editLastName,
         email: editEmail,
         ...(photoURL && { photoURL })
       })
-    
-      toast.success("✅ Utilisateur modifié.")
+  
       const updated = await getAllUsers()
       setUsers(updated as AppUser[])
+  
+      toast.success("✅ Utilisateur modifié.")
+      setModalOpen(false)
+  
+      // Nettoyage des states
+      setEditUserId(null)
+      setEditFirstName("")
+      setEditLastName("")
+      setEditEmail("")
+      setSelectedFile("")
+      setPreviewURL(null)
+  
     } catch (err) {
-      toast.error("Erreur de mise à jour.")
+      console.error("Erreur lors de la mise à jour :", err)
+      toast.error("❌ Erreur lors de la mise à jour.")
     }
   }
-
 
 
   if (authLoading || usersLoading) return <Loader />
@@ -156,13 +168,14 @@ const Users = () => {
                 </Button>
 
                 {/* Modal de modification */}
-                <Dialog>
+                <Dialog open={modalOpen} onOpenChange={setModalOpen}>
                   <DialogTrigger asChild>
                     <Button
                       size="sm"
                       variant="destructive"
                       className="bg-blue-800 hover:bg-blue-900 text-white"
                       onClick={() => {
+                        setModalOpen(true)
                         setEditUserId(user.id)
                         setEditFirstName(user.firstName)
                         setEditLastName(user.lastName)

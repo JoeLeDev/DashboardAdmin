@@ -5,15 +5,15 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from "./context/AuthContext"
 import { ThemeProvider } from "./context/ThemeContext"
-import { Toaster } from './components/ui/toaster'
+import { Toaster } from 'sonner'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
         <ThemeProvider>
+        <Toaster richColors/>
         <App />
-        <Toaster />
         </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
