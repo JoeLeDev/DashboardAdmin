@@ -117,7 +117,6 @@ const Users = () => {
       toast.success("✅ Utilisateur modifié.")
       setModalOpen(false)
   
-      // Nettoyage des states
       setEditUserId(null)
       setEditFirstName("")
       setEditLastName("")
@@ -167,7 +166,6 @@ const Users = () => {
                   Supprimer
                 </Button>
 
-                {/* Modal de modification */}
                 <Dialog open={modalOpen} onOpenChange={setModalOpen}>
                   <DialogTrigger asChild>
                     <Button
