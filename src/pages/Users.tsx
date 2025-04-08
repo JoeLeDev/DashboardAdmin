@@ -31,7 +31,9 @@ const Users = () => {
   const [editFirstName, setEditFirstName] = useState("")
   const [editLastName, setEditLastName] = useState("")
   const [editEmail, setEditEmail] = useState("")
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [editPhoto, setSelectedFile] = useState<File | string>("")
+  const [previewURL, setPreviewURL] = useState<string | null>(null)
+
 
 
   useEffect(() => {
@@ -90,28 +92,32 @@ const Users = () => {
 
     try {
       let photoURL = ""
-
-      if (selectedFile) {
-        photoURL = await uploadUserAvatar(selectedFile, editUserId)
+    
+      if (setSelectedFile) {
+        try {
+          photoURL = await uploadUserAvatar(setSelectedFile, editUserId)
+        } catch (uploadErr) {
+          console.error("Erreur lors de l'upload :", uploadErr)
+          toast.error("🚫 Impossible d'envoyer la photo. Accès refusé.")
+          return 
+        }
       }
-
+    
       await updateDoc(doc(db, "Users", editUserId), {
         firstName: editFirstName,
         lastName: editLastName,
         email: editEmail,
-        ...(photoURL && { photoURL }) // ne met à jour que si une image a été uploadée
+        ...(photoURL && { photoURL })
       })
-
-      toast.success("Utilisateur modifié.")
+    
+      toast.success("✅ Utilisateur modifié.")
       const updated = await getAllUsers()
       setUsers(updated as AppUser[])
     } catch (err) {
       toast.error("Erreur de mise à jour.")
-    } finally {
-      setEditUserId(null)
-      setSelectedFile(null)
     }
   }
+
 
 
   if (authLoading || usersLoading) return <Loader />
@@ -129,8 +135,8 @@ const Users = () => {
               </h3>
               <p><strong>Email :</strong> {user.email}</p>
               <p><strong>Rôle :</strong> {user.role}</p>
-              {user.photoURL && ( <img src={user.photoURL} alt="Avatar" 
-              className="w-16 h-16 rounded-full object-cover mb-2 border shadow"/>)}
+              {user.photoURL && (<img src={user.photoURL} alt="Avatar"
+                className="w-16 h-16 rounded-full object-cover mb-2 border shadow" />)}
               {user.createdAt && (
                 <p><strong>Inscrit le :</strong> {user.createdAt.toDate().toLocaleDateString()}</p>
               )}
@@ -161,15 +167,19 @@ const Users = () => {
                         setEditFirstName(user.firstName)
                         setEditLastName(user.lastName)
                         setEditEmail(user.email)
+                        setSelectedFile(user.photoURL || "")
+                        setPreviewURL(user.photoURL || null)
                       }}
                     >
-                       Modifier
+                      Modifier
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Modifier l'utilisateur</DialogTitle>
-                      <p className="text-sm text-muted-foreground"> Modifie les informations et la photo de l'utilisateur.</p>
+                      <p className="text-sm text-muted-foreground">
+                        Modifie les informations et la photo de l'utilisateur.
+                      </p>
                     </DialogHeader>
                     <div className="space-y-2">
                       <label className="block text-sm">Nom</label>
@@ -179,11 +189,13 @@ const Users = () => {
                       <label className="block text-sm">Email</label>
                       <Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
                       <label className="block text-sm">Photo de profil</label>
-                      <Input type="file" accept="image/*" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                      />
+                      <Input type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0] 
+                        if (file) { setSelectedFile(file)
+                         setPreviewURL(URL.createObjectURL(file)) } }} />
+
                     </div>
                     <DialogFooter>
-                      <Button onClick={handleUpdateUser}> Enregistrer</Button>
+                      <Button onClick={handleUpdateUser}>Enregistrer</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
